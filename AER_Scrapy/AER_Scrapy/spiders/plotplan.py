@@ -3,9 +3,10 @@ def dprint(*texts):
         print('****************************************')
         string=''
         for text in texts:
-             string+=str(text)+' '
+             string+=str(text)+' '+'\n'
         print(string)
-        print('****************************************')
+        # print('****************************************')
+        print()
 
 import scrapy
 from scrapy.utils.response import open_in_browser
@@ -13,6 +14,8 @@ from scrapy import FormRequest
 
 class PlotPlanSpider(scrapy.Spider):
     name = "plotplan"
+
+    # Add user-agent rotator function triggered on init
 
     def start_requests(self):
         dprint('start_requests')
@@ -97,5 +100,79 @@ class PlotPlanSpider(scrapy.Spider):
 
     def step3(self, response):
         dprint('step3')
+        # open_in_browser(response)
+
+        # Rows where 7th column contains substring "Facility"
+        rows = response.xpath('//table//tr[contains(td[7], "Facility")]')
+        # dprint('row after 1st filtering', rows)
+
+        # Rows where 1st column contains an input tag where input.value="View"
+        rows = rows.xpath('td[1][input[@value="View"]]/..')
+        # dprint('row after 2nd filtering', rows)
+
+        # Saving meta data for matched rows
+        rowsMeta=[]
+        for row in rows:
+            columns = []
+            columns.append( row.xpath('td[1]//input[@value="View"]/@name').get() )
+            # dprint('columns after 1st append', columns)
+            columns.extend( row.xpath('td//text()').getall() )
+            # dprint('columns after 2nd append', columns)
+
+            rowMeta = {
+                'View_name':columns[0],
+                'App#':columns[1],
+                'Alt#':columns[2],
+                'Status':columns[3],
+                'Primary Applicant':columns[4],
+                'Registered':columns[5],
+                'Category':columns[6],
+                'Type':columns[7],
+                'Location':columns[8],
+            }
+
+            rowsMeta.append(rowMeta)
+            dprint('Saved Row\' Meta Data', rowMeta)
+
+        
+
+        headers = {
+            # 'Referer': response.url,
+            # 'Origin': 'https://dds.aer.ca',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        }
+
+        formData = {
+            'PageItems':'100',
+            'ApplicationGrid$ctl09$ctl00':'View',
+            '_EubIapPageUseProgressMonitor':'true',
+        }
+
+        for rowMeta in rowsMeta:
+            # handles aspx double underscore hidden fields
+            yield FormRequest.from_response(
+                response=response, 
+                formdata=formData, 
+                headers=headers, 
+                callback=self.step4, 
+                meta=rowMeta
+            )
+
+    def step4(self, response):
+        dprint('step4')
+        # open_in_browser(response)
+
+        url = 'https://dds.aer.ca/iar_query/'
+        url += response.xpath('//a[text()="View Attachments"]/@href').get()
+        dprint('url of View Attachments', url)
+
+        headers = {
+            'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        }
+
+        yield scrapy.Request(url=url, headers=headers, callback=self.step5)
+
+    def step5(self, response):
+        dprint('step5')
         open_in_browser(response)
         
