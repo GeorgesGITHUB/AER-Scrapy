@@ -1,0 +1,17 @@
+P: 403 HTTP code making requests
+A1: Set a custom User-Agent 
+A2: Disabling robot.txt obedience
+O: Combining A1 and A2 works
+
+P: Getting a 403 HTTP code at the 2nd step
+S: Learning that scrapy doesn't carry over the headers from the first step so they must be redeclared
+
+Tips to avoid a 403
+https://www.zenrows.com/blog/scrapy-403#conclusion
+
+P: Requests to the website aren't working
+After investigating...
+When scraping aspx websites use FormRequest.from_response while submitting
+to handle passing the double underscore fields ( __VIEWSTATE, __VIEWSTATEGENERATOR, __EVENTVALIDATIONv)
+and to handle cookies.
+Pass the rest manually
