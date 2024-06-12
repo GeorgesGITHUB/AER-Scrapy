@@ -137,7 +137,7 @@ class PlotPlanSpider(scrapy.Spider):
             }
 
             rowsMeta.append(rowMeta)
-            dprint('Saved Row\' Meta Data', rowMeta)
+            dprint('Saved Row\'s Meta Data', rowMeta)
 
         
 
@@ -147,20 +147,25 @@ class PlotPlanSpider(scrapy.Spider):
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         }
 
-        formData = {
-            'PageItems':'100',
-            'ApplicationGrid$ctl09$ctl00':'View',
-            '_EubIapPageUseProgressMonitor':'true',
-        }
 
-        for rowMeta in rowsMeta:
+        dprint('rowsMeta',rowsMeta)
+        dprint('for rowMeta in rowsMeta:')
+        for e in rowsMeta:
+            dprint('e=',e)
             # handles aspx double underscore hidden fields
+            
+            formData = {
+                'PageItems':'100',
+                e['View_name']:'View',
+                '_EubIapPageUseProgressMonitor':'true',
+            }
             yield FormRequest.from_response(
                 response=response,
                 formdata=formData,
                 headers=headers,
                 callback=self.step4,
-                meta=rowMeta
+                meta=e,
+                dont_filter=True # Prevent Scrapy from filtering this request as a duplicate
             )
 
     def step4(self, response):
@@ -175,11 +180,14 @@ class PlotPlanSpider(scrapy.Spider):
             'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         }
 
+        dprint('current rowMeta',response.meta)
+
         yield scrapy.Request(
             url=url,
             headers=headers,
             callback=self.step5,
-            meta=response.meta # passing the meta data
+            meta=response.meta, # passing the meta data
+            dont_filter=True # Prevent Scrapy from filtering this request as a duplicate
         )
 
     def step5(self, response):
@@ -204,7 +212,9 @@ class PlotPlanSpider(scrapy.Spider):
         yield Request(
             url=file_url,
             headers= headers,
-            callback=self.step6)
+            callback=self.step6,
+            dont_filter=True
+        )
 
     def step6(self, response):
         # open_in_browser(response)
@@ -229,5 +239,5 @@ class PlotPlanSpider(scrapy.Spider):
         with open(file_path, 'wb') as f:
             f.write(response.body)
         
-        self.log(f"File saved as {file_path}")
+        dprint(f"File saved as {file_path}")
     
