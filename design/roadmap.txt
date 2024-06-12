@@ -1,0 +1,6 @@
+Release planning
+
+Prototype
+- Runs from shell w/ input
+- Crawls pages while avoiding HTTP 403
+- Downloads plot plans to a directory

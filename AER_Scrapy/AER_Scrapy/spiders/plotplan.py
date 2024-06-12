@@ -1,5 +1,4 @@
 import scrapy
-from scrapy.utils.response import open_in_browser
 from scrapy import FormRequest
 from scrapy.http import Request
 from urllib.parse import urljoin
