@@ -11,6 +11,11 @@ def dprint(*texts):
 import scrapy
 from scrapy.utils.response import open_in_browser
 from scrapy import FormRequest
+from scrapy.http import Request
+from urllib.parse import urljoin
+import os
+
+
 
 class PlotPlanSpider(scrapy.Spider):
     name = "plotplan"
@@ -151,10 +156,10 @@ class PlotPlanSpider(scrapy.Spider):
         for rowMeta in rowsMeta:
             # handles aspx double underscore hidden fields
             yield FormRequest.from_response(
-                response=response, 
-                formdata=formData, 
-                headers=headers, 
-                callback=self.step4, 
+                response=response,
+                formdata=formData,
+                headers=headers,
+                callback=self.step4,
                 meta=rowMeta
             )
 
@@ -170,9 +175,59 @@ class PlotPlanSpider(scrapy.Spider):
             'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         }
 
-        yield scrapy.Request(url=url, headers=headers, callback=self.step5)
+        yield scrapy.Request(
+            url=url,
+            headers=headers,
+            callback=self.step5,
+            meta=response.meta # passing the meta data
+        )
 
     def step5(self, response):
         dprint('step5')
-        open_in_browser(response)
         
+        # Extract the href value of the anchor tag with the text "Plot Plan"
+        relative_url = response.xpath('//a[text()="Plot Plan"]/@href').get()
+        dprint('relative_url:', relative_url)
+        
+        # fileUrl = response.url + relative_url
+        # fileUrl = 'https://dds.aer.ca/iar_query/ShowAttachment.aspx?DOCNUM=12007348'
+        # fileUrl = 'https://dds.aer.ca/iar_query/ShowAttachment.aspx?'
+
+        file_url = urljoin(response.url, relative_url)
+
+        headers = {
+            # 'Referer': response.url,
+            # 'Origin': 'https://dds.aer.ca',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        }
+
+        yield Request(
+            url=file_url,
+            headers= headers,
+            callback=self.step6)
+
+    def step6(self, response):
+        # open_in_browser(response)
+
+        # Using query part as filename and adding .pdf extension
+        original_filename = response.url.split('?')[-1] + '.pdf'
+        modified_filename = f"modified_{original_filename}"
+        
+        # Create the directory if it does not exist
+        directory = 'scraped-data'
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        
+        # Handle filename conflicts
+        file_path = os.path.join(directory, modified_filename)
+        counter = 1
+        while os.path.exists(file_path):
+            file_path = os.path.join(directory, f"modified_{counter}_{original_filename}")
+            counter += 1
+        
+        # Save the file
+        with open(file_path, 'wb') as f:
+            f.write(response.body)
+        
+        self.log(f"File saved as {file_path}")
+    
