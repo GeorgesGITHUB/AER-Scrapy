@@ -1,13 +1,3 @@
-# debug print
-def dprint(*texts):
-        print('****************************************')
-        string=''
-        for text in texts:
-             string+=str(text)+' '+'\n'
-        print(string)
-        # print('****************************************')
-        print()
-
 import scrapy
 from scrapy.utils.response import open_in_browser
 from scrapy import FormRequest
@@ -15,50 +5,61 @@ from scrapy.http import Request
 from urllib.parse import urljoin
 import os
 
+def createRowsMetaData(htmlRows): # util function
+    rowsMeta=[]
+    for row in htmlRows:
+        columns = []
+        columns.append( row.xpath('td[1]//input[@value="View"]/@name').get() )
+        columns.extend( row.xpath('td//text()').getall() )
+        rowsMeta.append({
+            'View_name':columns[0],
+            'App#':columns[1],
+            'Alt#':columns[2],
+            'Status':columns[3],
+            'Primary Applicant':columns[4],
+            'Registered':columns[5],
+            'Category':columns[6],
+            'Type':columns[7],
+            'Location':columns[8],
+        })
+    
+    return rowsMeta
 
+def dprint(*texts):
+    print('*')
+    print('**')
+    print('***')
+
+    string = ''
+    for e in texts : string += e + ' '
+    print('****',string)
+
+    print('***')
+    print('**')
+    print('*')
 
 class PlotPlanSpider(scrapy.Spider):
     name = "plotplan"
-
-    # Add user-agent rotator function triggered on init
+    url = "https://dds.aer.ca/iar_query/FindApplications.aspx"
+    userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
 
     def start_requests(self):
-        dprint('start_requests')
-        urls = [
-            "https://dds.aer.ca/iar_query/FindApplications.aspx",
-        ]
+        dprint('AER_Scrapy by Georges Atallah')
+        dprint('Spider', self.name, 'making a Request to', self.url)
 
         headers = {
-            # 'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            # 'Accept-Encoding':'gzip, deflate, br, zstd',
-            # 'Accept-Language':'en-CA,en;q=0.9,fr;q=0.8',
-            # 'Cache-Control':'no-cache',
-            # # 'Cookie':'ApplicationGatewayAffinityCORS=cdd4d7efe17b7ee004905df3f26c25d0; ApplicationGatewayAffinity=cdd4d7efe17b7ee004905df3f26c25d0; ASP.NET_SessionId=umtjobvfbq14yvjve1msdtar; ASLBSA=0003c515ff7a1f7e7618fdb6e230a6fae1ec5f3175921df43dde080333c2fb64c619; ASLBSACORS=0003c515ff7a1f7e7618fdb6e230a6fae1ec5f3175921df43dde080333c2fb64c619',
-            # 'Pragma':'no-cache',
-            # 'Priority':'u=0, i',
-            # 'Sec-Ch-Ua':'"Google Chrome";v="125", "Chromium";v="125", "Not.A/Brand";v="24"',
-            # 'Sec-Ch-Ua-Mobile':'?0',
-            # 'Sec-Ch-Ua-Platform':'"macOS"',
-            # 'Sec-Fetch-Dest':'document',
-            # 'Sec-Fetch-Mode':'navigate',
-            # 'Sec-Fetch-Site':'none',
-            # 'Sec-Fetch-User':'?1',
-            # 'Upgrade-Insecure-Requests':'1',
-            'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'User-Agent': self.userAgent
         }
 
-        for url in urls:
-            yield scrapy.Request(url=url, headers=headers, callback=self.parse)
-            # yield scrapy.Request(url=url, headers={
-            #      'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-            # }, callback=self.parse)
+        yield scrapy.Request(
+            url=self.url, 
+            headers=headers, 
+            callback=self.step1
+        )
 
-    def parse(self, response):
-        dprint('parse')
-
-        # viewstate = response.xpath('//input[@name="__VIEWSTATE"]/@value').get()
-        # viewstategenerator = response.xpath('//input[@name="__VIEWSTATEGENERATOR"]/@value').get()
-        # eventvalidation = response.xpath('//input[@name="__EVENTVALIDATION"]/@value').get()
+    # Submitting a query
+    def step1(self, response):
+        dprint('Starting step1')
 
         formData = {
             'LSD': '13',
@@ -67,96 +68,62 @@ class PlotPlanSpider(scrapy.Spider):
             'Range': '09',
             'Meridian': '4',
             'btnSearch': 'Search',
-            # '__VIEWSTATE': viewstate,
-            # '__VIEWSTATEGENERATOR': viewstategenerator,
-            # '__EVENTVALIDATION': eventvalidation,
             '_EubIapPageUseProgressMonitor': 'true',
         }
 
         headers = {
-            # 'Referer': response.url,
-            # 'Origin': 'https://dds.aer.ca',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'User-Agent': self.userAgent,
         }
 
-        # handles aspx double underscore hidden fields
-        yield FormRequest.from_response(response=response, formdata=formData, headers=headers, callback=self.step2)
-        
+        # from_response handles aspx double underscore hidden fields
+        yield FormRequest.from_response(
+            response=response, 
+            formdata=formData, 
+            headers=headers, 
+            callback=self.step2
+        )
+    
+    # Reloads Query results to display 100 items
     def step2(self, response):
-        dprint('step2')
-        # open_in_browser(response)
+        dprint('Starting step2')
 
         formData = {
-            # '__VIEWSTATE': viewstate,
-            # '__VIEWSTATEGENERATOR': viewstategenerator,
-            # '__EVENTVALIDATION': eventvalidation,
             'PageItems': '100',
             '_EubIapPageUseProgressMonitor': 'true',
         }
 
         headers = {
-            # 'Referer': response.url,
-            # 'Origin': 'https://dds.aer.ca',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'User-Agent': self.userAgent,
         }
 
         # handles aspx double underscore hidden fields
-        yield FormRequest.from_response(response=response, formdata=formData, headers=headers, callback=self.step3)
+        yield FormRequest.from_response(
+            response=response, 
+            formdata=formData, 
+            headers=headers, 
+            callback=self.step3
+        )
 
+    # Gets row data of targetted rows then views them
     def step3(self, response):
-        dprint('step3')
-        # open_in_browser(response)
+        dprint('Starting step3')
 
-        # Rows where 7th column contains substring "Facility"
+        # Select Rows where 7th column contains substring "Facility"
         rows = response.xpath('//table//tr[contains(td[7], "Facility")]')
-        # dprint('row after 1st filtering', rows)
-
-        # Rows where 1st column contains an input tag where input.value="View"
+        # Further Select Rows where 1st column contains an input tag where input.value="View"
         rows = rows.xpath('td[1][input[@value="View"]]/..')
-        # dprint('row after 2nd filtering', rows)
 
-        # Saving meta data for matched rows
-        rowsMeta=[]
-        for row in rows:
-            columns = []
-            columns.append( row.xpath('td[1]//input[@value="View"]/@name').get() )
-            # dprint('columns after 1st append', columns)
-            columns.extend( row.xpath('td//text()').getall() )
-            # dprint('columns after 2nd append', columns)
-
-            rowMeta = {
-                'View_name':columns[0],
-                'App#':columns[1],
-                'Alt#':columns[2],
-                'Status':columns[3],
-                'Primary Applicant':columns[4],
-                'Registered':columns[5],
-                'Category':columns[6],
-                'Type':columns[7],
-                'Location':columns[8],
-            }
-
-            rowsMeta.append(rowMeta)
-            dprint('Saved Row\'s Meta Data', rowMeta)
-
+        # Saving meta data of rows
+        rowsMeta = createRowsMetaData(rows)
         
-
         headers = {
-            # 'Referer': response.url,
-            # 'Origin': 'https://dds.aer.ca',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'User-Agent': self.userAgent,
         }
 
-
-        dprint('rowsMeta',rowsMeta)
-        dprint('for rowMeta in rowsMeta:')
-        for e in rowsMeta:
-            dprint('e=',e)
-            # handles aspx double underscore hidden fields
-            
+        for rowMeta in rowsMeta:
             formData = {
                 'PageItems':'100',
-                e['View_name']:'View',
+                rowMeta['View_name']:'View',
                 '_EubIapPageUseProgressMonitor':'true',
             }
             yield FormRequest.from_response(
@@ -164,60 +131,50 @@ class PlotPlanSpider(scrapy.Spider):
                 formdata=formData,
                 headers=headers,
                 callback=self.step4,
-                meta=e,
-                dont_filter=True # Prevent Scrapy from filtering this request as a duplicate
+                meta=rowMeta,
             )
 
+    # Visit the View Attachments page
     def step4(self, response):
-        dprint('step4')
-        # open_in_browser(response)
+        dprint('Starting step4 for Application Number', response.meta['App#'])
 
         url = 'https://dds.aer.ca/iar_query/'
         url += response.xpath('//a[text()="View Attachments"]/@href').get()
-        dprint('url of View Attachments', url)
 
         headers = {
-            'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'User-Agent': self.userAgent,
         }
-
-        dprint('current rowMeta',response.meta)
 
         yield scrapy.Request(
             url=url,
             headers=headers,
             callback=self.step5,
             meta=response.meta, # passing the meta data
-            dont_filter=True # Prevent Scrapy from filtering this request as a duplicate
         )
 
+    # Initiates a download requests for plotplan attachments
     def step5(self, response):
-        dprint('step5')
+        dprint('Starting step5 for Application Number', response.meta['App#'])
         
         # Extract the href value of the anchor tag with the text "Plot Plan"
         relative_url = response.xpath('//a[text()="Plot Plan"]/@href').get()
-        dprint('relative_url:', relative_url)
-        
-        # fileUrl = response.url + relative_url
-        # fileUrl = 'https://dds.aer.ca/iar_query/ShowAttachment.aspx?DOCNUM=12007348'
-        # fileUrl = 'https://dds.aer.ca/iar_query/ShowAttachment.aspx?'
 
         file_url = urljoin(response.url, relative_url)
 
         headers = {
-            # 'Referer': response.url,
-            # 'Origin': 'https://dds.aer.ca',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'User-Agent': self.userAgent,
         }
 
         yield Request(
             url=file_url,
             headers= headers,
             callback=self.step6,
-            dont_filter=True
+            # meta=response.meta,
         )
 
+    # Downloads plotplans into a directory
     def step6(self, response):
-        # open_in_browser(response)
+        dprint('Starting step6')
 
         # Using query part as filename and adding .pdf extension
         original_filename = response.url.split('?')[-1] + '.pdf'
