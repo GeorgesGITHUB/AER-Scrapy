@@ -4,3 +4,26 @@ Prototype
 - Runs from shell w/ input
 - Crawls pages while avoiding HTTP 403
 - Downloads plot plans to a directory
+
+Scale
+- Edge cases to consider:
+    - Multiple plot plans in View Attachments
+    - No plot plans in View Attachments
+- Reduce time delays
+- Form file naming: 
+    - PolyID + date from View Attachments page + og name
+- List of Polygons - Land Units association read and fed to the spider on init
+- Many user inputs are queued by reading from a file
+
+Refactor 1
+- Scan the repo to make...
+    - things configurable
+    - debug statement more useful
+    - Group repeated functionalities in functions and store in the class or in utils
+    - logic optimizations or fast libraries for actions
+- User Agent Rotator
+- Use scrapy pipelines for transforms and other use cases
+
+QOL Features
+- Log the number of plotplans downloaded per polygon
+- plotplans will go in a subdirectory based on their associated polygon

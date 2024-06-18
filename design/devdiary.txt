@@ -15,3 +15,8 @@ When scraping aspx websites use FormRequest.from_response while submitting
 to handle passing the double underscore fields ( __VIEWSTATE, __VIEWSTATEGENERATOR, __EVENTVALIDATIONv)
 and to handle cookies.
 Pass the rest manually
+
+P: Looping a dict and passing keys to a Request's meta caused a [scrapy.dupefilters]
+After investigating...
+When scrapy checks for duplicates it considers the changes outside of meta data, e.g. Body
+S: Loop through the dict in the next step where it's used anyways
