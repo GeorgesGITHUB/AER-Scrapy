@@ -54,7 +54,8 @@ class PlotPlanSpider(scrapy.Spider):
     url = "https://dds.aer.ca/iar_query/FindApplications.aspx"
     userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
     LandUnit_PolyID_Dict = csv_to_dict('AB_2023_Polygon_with_Source_LandUnit.csv')
-    number_of_scrapes_allowed= 1 # set to -1 to disable limit
+    number_of_scrapes_allowed= -1 # set to -1 to disable limit
+    use_preset=False
     
     def start_requests(self):
         dprint('AER_Scrapy by Georges Atallah')
@@ -64,13 +65,20 @@ class PlotPlanSpider(scrapy.Spider):
             'User-Agent': self.userAgent
         }
 
-        yield scrapy.Request(
-            url=self.url, 
-            headers=headers, 
-            callback=self.step1,
-        )
+        if (self.use_preset):
+            yield scrapy.Request(
+                url=self.url, 
+                headers=headers, 
+                callback=self.step1Preset,
+            )
+        else:
+            yield scrapy.Request(
+                url=self.url, 
+                headers=headers, 
+                callback=self.step1,
+            )
 
-    # Submitting a query
+    # Submitting queries with LandUnits from LandUnit_PolyID_Dict
     def step1(self, response):
         dprint('Starting step1')
 
@@ -109,10 +117,50 @@ class PlotPlanSpider(scrapy.Spider):
                 callback=self.step2,
                 meta={'LandUnit':key}
             )
+
+    # Submitting query from preset LandUnit
+    # Used to targetting specific LandUnits or testing
+    def step1Preset(self, response):
+        dprint('Starting step1Preset')
+
+        key = '13-24-050-09W4'
+        
+        landUnit = key.split('-')
+        temp = landUnit[3].split('W')
+        landUnit[3]=temp[0]
+        landUnit.append(temp[1])
+        temp=None
+
+        formData = {
+                'LSD': landUnit[0],
+                'Section': landUnit[1],
+                'Township': landUnit[2],
+                'Range': landUnit[3],
+                'Meridian': landUnit[4],
+                'btnSearch': 'Search',
+                '_EubIapPageUseProgressMonitor': 'true',
+            }
+        
+        print('Form Data Entered:', formData)
+
+        headers = {
+            'User-Agent': self.userAgent,
+        }
+
+        # from_response handles aspx double underscore hidden fields
+        yield FormRequest.from_response(
+            response=response, 
+            formdata=formData, 
+            headers=headers, 
+            callback=self.step2,
+            meta={'LandUnit':key}
+        )
     
     # Reloads Query results to display 100 items
     def step2(self, response):
-        dprint('Starting step2')
+        dprint('Starting step2', '|',
+               'LandUnit:', response.meta['LandUnit'],'|',
+               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
 
         formData = {
             'PageItems': '100',
@@ -134,7 +182,9 @@ class PlotPlanSpider(scrapy.Spider):
 
     # Gets row data of targetted rows then views them
     def step3(self, response):
-        dprint('Starting step3')
+        dprint('Starting step3', '|',
+               'LandUnit:', response.meta['LandUnit'],'|', 
+               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
 
         # Select Rows where 7th column contains substring "Facility"
         rows = response.xpath('//table//tr[contains(td[7], "Facility")]')
@@ -167,7 +217,10 @@ class PlotPlanSpider(scrapy.Spider):
 
     # Visit the View Attachments page
     def step4(self, response):
-        dprint('Starting step4 for Application Number', response.meta['App#'])
+        dprint('Starting step4', '|',
+               'Application Number', response.meta['App#'], '|',
+               'LandUnit:', response.meta['LandUnit'],'|', 
+               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
 
         url = 'https://dds.aer.ca/iar_query/'
         url += response.xpath('//a[text()="View Attachments"]/@href').get()
@@ -185,7 +238,10 @@ class PlotPlanSpider(scrapy.Spider):
 
     # Initiates a download requests for plotplan attachments
     def step5(self, response):
-        dprint('Starting step5 for Application Number', response.meta['App#'])
+        dprint('Starting step5', '|',
+               'Application Number', response.meta['App#'], '|',
+               'LandUnit:', response.meta['LandUnit'],'|', 
+               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
 
         # Extract all rows where the 2nd column contains an anchor tag containing "Plot Plan"
         rows = response.xpath('//table//tr[td[2]//a[contains(text(), "Plot Plan")]]')
@@ -216,7 +272,10 @@ class PlotPlanSpider(scrapy.Spider):
 
     # Downloads plotplans into a directory
     def step6(self, response):
-        dprint('Starting step6')
+        dprint('Starting step6', '|',
+               'Application Number', response.meta['App#'], '|',
+               'LandUnit:', response.meta['LandUnit'],'|', 
+               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
 
         # PolyID + Date in View Attachments + Doc Number
         filename = f"{response.meta['PolyID']}___{response.meta['date']}_{response.url.split('?DOCNUM=')[-1]}.pdf"
