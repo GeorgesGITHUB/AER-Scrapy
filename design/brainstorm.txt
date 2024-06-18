@@ -4,13 +4,10 @@ Task/time Graph overlaying w/ & w/o web scrape tool
 Full GUI experience
 Lots of configurable settings
 Modifiable directory location
-Configurable throttling
 Concurrent operations
 Shortcut using url navigating and API requests
 Have the other tab previewing the pdf
 Left side of the split window has the gui buttons and fields
-Selenium chrome headless toggleable
-Evasive manuevers avoiding a 403
 LLM to identify elements in plot plan
 user agent getter which rotates on every call
 
@@ -31,7 +28,14 @@ Layout:
 [                                       |                               ]
 [                                       |                               ]
 [                                       |                               ]
-[ progress tracker (see joyui stepper) | cmd window showing executions ]
+[ progress tracker (see joyui stepper)  | cmd window showing executions ]
 [                                       |                               ]
 [                                       |                               ]
 [                                       |                               ]
+
+**** DONE ****
+Configurable throttling
+Evasive manuevers avoiding a 403
+
+*** Cancelled ***
+Selenium chrome headless toggleable
