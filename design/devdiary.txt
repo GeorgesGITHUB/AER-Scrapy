@@ -20,3 +20,31 @@ P: Looping a dict and passing keys to a Request's meta caused a [scrapy.dupefilt
 After investigating...
 When scrapy checks for duplicates it considers the changes outside of meta data, e.g. Body
 S: Loop through the dict in the next step where it's used anyways
+
+P: When mass scraping, I can download 28 files before getting HTTP 302 Redirections
+A: Divide LandUnits into subsets and run a dynamic number of spider instances
+
+Possible Cause of HTTP 302s
+    Rate Limiting: 
+        The website may have rate limiting in place to prevent too many requests from a 
+        single IP address within a short time period. When this happens, the server might 
+        redirect you to a different page (often a captcha page or an error page).
+    Session Handling: 
+        Some websites require that you maintain a session (e.g., logging in or using session cookies). 
+        If your session expires or if you are making requests without handling sessions properly, 
+        the server might redirect you to a login page or another session initialization page.
+    Anti-Scraping Measures: 
+        Many websites implement anti-scraping measures, including redirects to detect and prevent automated scraping. 
+        This could be in the form of captchas, user-agent checks, or IP-based blocking.
+    Incorrect URL Handling: 
+        Sometimes, the URLs you are trying to access may themselves be redirects. 
+        This could be due to misconfigured URLs in your Scrapy project or the website structure itself.
+
+
+P: Exception: The installed reactor (twisted.internet.selectreactor.SelectReactor) does not match the requested one (twisted.internet.asyncioreactor.AsyncioSelectorReactor)
+S: 
+    https://docs.scrapy.org/en/latest/topics/asyncio.html
+    Since I'm using CrawlerRunner, I need to set the reactor manually (set it everywhere) 
+    or else it defaults the other select reactor. It's a very specific issue.
+        from scrapy.utils.reactor import install_reactor
+        install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
