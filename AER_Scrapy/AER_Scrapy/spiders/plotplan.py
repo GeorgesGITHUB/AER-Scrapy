@@ -5,6 +5,11 @@ from urllib.parse import urljoin
 import os
 import pandas as pd
 
+from scrapy.utils.reactor import install_reactor
+install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
+
+
+
 def csv_to_dict(file_path):
     # Read the CSV file into a Pandas DataFrame
     df = pd.read_csv(file_path)
@@ -57,6 +62,10 @@ class PlotPlanSpider(scrapy.Spider):
     number_of_scrapes_allowed= -1 # set to -1 to disable limit
     use_preset=False
     
+    def __init__(self, landunits=None, *args, **kwargs):
+        super(PlotPlanSpider, self).__init__(*args, **kwargs)
+        self.landunits = landunits
+
     def start_requests(self):
         dprint('AER_Scrapy by Georges Atallah')
         dprint('Spider', self.name, 'making a Request to', self.url)
@@ -82,10 +91,7 @@ class PlotPlanSpider(scrapy.Spider):
     def step1(self, response):
         dprint('Starting step1')
 
-        for index, key in enumerate(self.LandUnit_PolyID_Dict):
-            if index==self.number_of_scrapes_allowed:
-                dprint('Reached the limit of permitted LandUnit scrapes:', self.number_of_scrapes_allowed)
-                break
+        for key in self.landunits:
 
             landUnit = key.split('-')
             temp = landUnit[3].split('W')
@@ -103,7 +109,7 @@ class PlotPlanSpider(scrapy.Spider):
                 '_EubIapPageUseProgressMonitor': 'true',
             }
             
-            print('Form Data Entered:', formData)
+            # print('Form Data Entered:', formData)
 
             headers = {
                 'User-Agent': self.userAgent,
