@@ -92,3 +92,7 @@ RANDOMIZE_DOWNLOAD_DELAY = True
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+# Configure log saving
+# LOG_STDOUT = True
+# LOG_FILE = 'scrapy_saved_logs.txt'

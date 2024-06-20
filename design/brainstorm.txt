@@ -4,7 +4,6 @@ Task/time Graph overlaying w/ & w/o web scrape tool
 Full GUI experience
 Lots of configurable settings
 Modifiable directory location
-Concurrent operations
 Shortcut using url navigating and API requests
 Have the other tab previewing the pdf
 Left side of the split window has the gui buttons and fields
@@ -14,6 +13,13 @@ Batch controls:
 - interrupt and resume with user input
 - Change course
 - Get what's left (for later batching)
+
+Stats
+- what's done
+- what's left
+- etc
+
+Save execution logs
 
 Notes from demoing
 - Searching for plot plans in polygons is better than LSD
@@ -29,17 +35,10 @@ Mark down which polygons that did and didn't have a plotplan download
 
 Split the window in two and have a tab emulating a terminal
 Layout:
-[                                       |                               ]
-[                                       |                               ]
-[                                       |                               ]
-[ progress tracker (see joyui stepper)  | cmd window showing executions ]
-[                                       |                               ]
-[                                       |                               ]
-[                                       |                               ]
-
-**** DONE ****
-Configurable throttling
-Evasive manuevers avoiding a 403
-
-*** Cancelled ***
-Selenium chrome headless toggleable
+[                                      |                               ]
+[                                      |                               ]
+[                                      |                               ]
+[ progress tracker (see joyui stepper) | cmd window showing executions ]
+[                                      |                               ]
+[                                      |                               ]
+[                                      |                               ]
