@@ -6,7 +6,6 @@ from scrapy.utils.log import configure_logging
 from scrapy.utils.project import get_project_settings
 from scrapy.utils.reactor import install_reactor
 
-
 def dprint(*texts):
     print('*')
     print('**')
@@ -34,6 +33,9 @@ def chunk_list(lst, chunk_size):
 
 
 def main():
+    dprint('AER_Scrapy by Georges Atallah')
+    
+    # Prevents wrong selector from being used
     install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
 
     # Initialize Scrapy settings

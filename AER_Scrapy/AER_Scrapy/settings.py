@@ -93,6 +93,41 @@ REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
-# Configure log saving
-# LOG_STDOUT = True
-# LOG_FILE = 'scrapy_saved_logs.txt'
+# File name to use for logging output. 
+# If None, standard error will be used.
+# LOG_FILE = None
+LOG_FILE = 'log_output.txt'
+
+# If False, the log file specified with LOG_FILE will be overwritten 
+# (discarding the output from previous runs, if any).
+# LOG_FILE_APPEND = True
+LOG_FILE_APPEND = False
+
+# Whether to enable logging.
+# LOG_ENABLED = True
+
+# The encoding to use for logging.
+# LOG_ENCODING = 'utf-8'
+
+# Minimum level to log. Available levels are: 
+# CRITICAL, ERROR, WARNING, INFO, DEBUG. For more info see Logging.
+# LOG_LEVEL = 'DEBUG'
+
+# String for formatting log messages. Refer to the Python 
+# logging documentation for the whole list of available placeholders.
+# LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
+
+# String for formatting date/time, expansion of the 
+# %(asctime)s placeholder in LOG_FORMAT. Refer to the Python 
+# datetime documentation for the whole list of available directives.
+# LOG_DATEFORMAT = '%Y-%m-%d %H:%M:%S'
+
+# If True, all standard output (and error) of your process will be 
+# redirected to the log. For example if you print('hello') it will 
+# appear in the Scrapy log.
+# LOG_STDOUT = False
+LOG_STDOUT = True
+
+# If True, the logs will just contain the root path. If it is set to 
+# False then it displays the component responsible for the log output
+# LOG_SHORT_NAMES = False

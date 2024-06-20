@@ -6,6 +6,7 @@ import os
 import pandas as pd
 
 from scrapy.utils.reactor import install_reactor
+# Prevents wrong selector from being used
 install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
 
 
@@ -67,7 +68,6 @@ class PlotPlanSpider(scrapy.Spider):
         self.landunits = landunits
 
     def start_requests(self):
-        dprint('AER_Scrapy by Georges Atallah')
         dprint('Spider', self.name, 'making a Request to', self.url)
 
         headers = {
