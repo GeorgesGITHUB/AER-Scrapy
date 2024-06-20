@@ -101,7 +101,6 @@ LOG_FILE = 'log_output.txt'
 # If False, the log file specified with LOG_FILE will be overwritten 
 # (discarding the output from previous runs, if any).
 # LOG_FILE_APPEND = True
-LOG_FILE_APPEND = False
 
 # Whether to enable logging.
 # LOG_ENABLED = True

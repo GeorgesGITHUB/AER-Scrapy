@@ -31,20 +31,24 @@ def chunk_list(lst, chunk_size):
     for i in range(0, len(lst), chunk_size):
         yield lst[i:i + chunk_size]
 
-
-def main():
-    dprint('AER_Scrapy by Georges Atallah')
-    
+def main(start_i=None):
     # Prevents wrong selector from being used
     install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
-
     # Initialize Scrapy settings
     settings = get_project_settings()
     configure_logging(settings)
     runner = CrawlerRunner(settings)
 
+    dprint('AER_Scrapy by Georges Atallah')
+
     csv_path = 'AB_2023_Polygon_with_Source_LandUnit.csv'
+
     large_list = csv_to_list(csv_path)
+
+    if (start_i != None): 
+        dprint('slicing landunit list')
+        large_list = large_list[start_i:]
+    
     batch_size = 1
 
     # Divide the list into smaller batches
@@ -52,13 +56,26 @@ def main():
 
     @defer.inlineCallbacks
     def crawl():
-        # yield runner.crawl(Spider, landunits=list(batches[0]))
-        # reactor.stop()
         
         for i, batch in enumerate(batches):
+
             dprint(f'Running batch {i + 1}/{len(batches)}...')
             yield runner.crawl(Spider, landunits=list(batch))
             dprint(f'Batch {i + 1} completed.')
+            
+            dprint(
+                (i+1),'LandUnits scrapes complete, from indexes',
+                f'(0,{i}(',
+                '\n',
+                large_list[ : (i+1)*batch_size ],
+            )
+            dprint(
+                'LandUnits scrapes remaining, from indexes',
+                f'({(i+1)*batch_size},{len(large_list)-1}(',
+                '\n',
+                large_list[ (i+1)*batch_size : ],
+            )
+
         reactor.stop()
         
 
