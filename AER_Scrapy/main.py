@@ -42,9 +42,7 @@ def poly_landunit_dict_from(file_path):
     return dict(zip(grouped_data['PolyID'], grouped_data['LandUnit']))
 
 def print_polygon_coverage_board(poly_ld_dict, validation_poly_ld_dict):
-    print('*************************************************')
-    print('Polygon coverage board')
-    print('Polygon name ::: Missing Land Units ::: Covered Land Units')
+    print('*************** Polygon coverage board ***************')
     
     # For every polygon
     for poly in validation_poly_ld_dict:
@@ -52,15 +50,24 @@ def print_polygon_coverage_board(poly_ld_dict, validation_poly_ld_dict):
         landunits = poly_ld_dict[poly]
         
         covered=''
+        covered_count=0
         not_covered=''
+        not_covered_count=0
         # for each landunit
         for v_ld in v_landunits:
             # append to a coverage and not coverage list
-            if (v_ld in landunits): covered += v_ld
-            else: not_covered += v_ld
+            if (v_ld in landunits):
+                covered += v_ld + ' ; '
+                covered_count += 1
+            else: 
+                not_covered += v_ld + ' ; '
+                not_covered_count += 1
 
-        if (not_covered == ''): print(f'{poly} -> ALL LAND UNITS COVERED')
-        else: print(f'{poly} ::: {not_covered} ::: {covered}')
+        print(poly)
+        print(f'Covered Land Units ({covered_count}): {covered}')
+        print(f'Missing Land Units ({not_covered_count}): {not_covered}')
+
+
 
     print('*************************************************')
 
@@ -117,8 +124,11 @@ def main(start_i=None):
                 # large_list[ (i+1)*batch_size : ],
             )
 
-            if (i%2==0 and i!=0):
+            if (i%5==0 and i!=0):
                 print_polygon_coverage_board(poly_ld_dict, validation_poly_ld_dict)
+
+        # Printing at completion
+        print_polygon_coverage_board(poly_ld_dict, validation_poly_ld_dict)
 
         reactor.stop()
         
