@@ -31,6 +31,39 @@ def chunk_list(lst, chunk_size):
     for i in range(0, len(lst), chunk_size):
         yield lst[i:i + chunk_size]
 
+def poly_landunit_dict_from(file_path):
+    # Read the CSV file into a Pandas DataFrame
+    df = pd.read_csv(file_path)
+
+    # Group by 'PolyID' and aggregate 'LandUnit' into lists
+    grouped_data = df.groupby('PolyID')['LandUnit'].apply(list).reset_index()
+
+    # Convert grouped data into a dictionary
+    return dict(zip(grouped_data['PolyID'], grouped_data['LandUnit']))
+
+def print_polygon_coverage_board(poly_ld_dict, validation_poly_ld_dict):
+    print('*************************************************')
+    print('Polygon coverage board')
+    print('Polygon name ::: Missing Land Units ::: Covered Land Units')
+    
+    # For every polygon
+    for poly in validation_poly_ld_dict:
+        v_landunits = validation_poly_ld_dict[poly]
+        landunits = poly_ld_dict[poly]
+        
+        covered=''
+        not_covered=''
+        # for each landunit
+        for v_ld in v_landunits:
+            # append to a coverage and not coverage list
+            if (v_ld in landunits): covered += v_ld
+            else: not_covered += v_ld
+
+        if (not_covered == ''): print(f'{poly} -> ALL LAND UNITS COVERED')
+        else: print(f'{poly} ::: {not_covered} ::: {covered}')
+
+    print('*************************************************')
+
 def main(start_i=None):
     # Prevents wrong selector from being used
     install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
@@ -42,13 +75,17 @@ def main(start_i=None):
     dprint('AER_Scrapy by Georges Atallah')
 
     csv_path = 'AB_2023_Polygon_with_Source_LandUnit.csv'
-
     large_list = csv_to_list(csv_path)
 
     if (start_i != None): 
         dprint('slicing landunit list')
         large_list = large_list[start_i:]
-    
+
+    validation_poly_ld_dict = poly_landunit_dict_from(csv_path)
+
+    poly_ld_dict = dict() # used for stat tracking
+    for key in validation_poly_ld_dict: poly_ld_dict[key]=[]
+
     batch_size = 1
 
     # Divide the list into smaller batches
@@ -60,7 +97,11 @@ def main(start_i=None):
         for i, batch in enumerate(batches):
 
             dprint(f'Running batch {i + 1}/{len(batches)}...')
-            yield runner.crawl(Spider, landunits=list(batch))
+            yield runner.crawl(
+                Spider, 
+                landunits=list(batch), 
+                poly_ld_dict= poly_ld_dict,
+            )
             dprint(f'Batch {i + 1} completed.')
             
             dprint(
@@ -73,8 +114,11 @@ def main(start_i=None):
                 'LandUnits scrapes remaining, from indexes',
                 f'({(i+1)*batch_size},{len(large_list)-1}(',
                 '\n',
-                large_list[ (i+1)*batch_size : ],
+                # large_list[ (i+1)*batch_size : ],
             )
+
+            if (i%2==0 and i!=0):
+                print_polygon_coverage_board(poly_ld_dict, validation_poly_ld_dict)
 
         reactor.stop()
         

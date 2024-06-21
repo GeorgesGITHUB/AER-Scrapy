@@ -9,8 +9,6 @@ from scrapy.utils.reactor import install_reactor
 # Prevents wrong selector from being used
 install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
 
-
-
 def csv_to_dict(file_path):
     # Read the CSV file into a Pandas DataFrame
     df = pd.read_csv(file_path)
@@ -63,9 +61,10 @@ class PlotPlanSpider(scrapy.Spider):
     number_of_scrapes_allowed= -1 # set to -1 to disable limit
     use_preset=False
     
-    def __init__(self, landunits=None, *args, **kwargs):
+    def __init__(self, landunits=None, poly_ld_dict=None, *args, **kwargs):
         super(PlotPlanSpider, self).__init__(*args, **kwargs)
         self.landunits = landunits
+        self.poly_ld_dict = poly_ld_dict
 
     def start_requests(self):
         dprint('Spider', self.name, 'making a Request to', self.url)
@@ -282,6 +281,11 @@ class PlotPlanSpider(scrapy.Spider):
                'Application Number', response.meta['App#'], '|',
                'LandUnit:', response.meta['LandUnit'],'|', 
                'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
+        
+        # For tracking
+        poly_name = self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0]
+        land_unit_name = response.meta['LandUnit']
+        self.poly_ld_dict[poly_name].append(land_unit_name)
 
         # PolyID + Date in View Attachments + Doc Number
         filename = f"{response.meta['PolyID']}___{response.meta['date']}_{response.url.split('?DOCNUM=')[-1]}.pdf"
@@ -303,4 +307,5 @@ class PlotPlanSpider(scrapy.Spider):
             f.write(response.body)
         
         dprint(f"File saved as {file_path}")
+
     
