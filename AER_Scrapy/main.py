@@ -86,6 +86,7 @@ def main(start_i=None):
 
     if (start_i != None): 
         dprint('slicing landunit list')
+        dprint(f'Resuming crawling from index {start_i} (inclusive)')
         large_list = large_list[start_i:]
 
     validation_poly_ld_dict = poly_landunit_dict_from(csv_path)
@@ -111,15 +112,16 @@ def main(start_i=None):
             )
             dprint(f'Batch {i + 1} completed.')
             
+            landunits_scraped = (i+1)*batch_size
             dprint(
                 (i+1),'LandUnits scrapes complete, from indexes',
-                f'(0,{i}(',
+                f'(0,{landunits_scraped}(',
                 '\n',
                 large_list[ : (i+1)*batch_size ],
             )
             dprint(
                 'LandUnits scrapes remaining, from indexes',
-                f'({(i+1)*batch_size},{len(large_list)-1}(',
+                f'({landunits_scraped},{len(large_list)-1}(',
                 '\n',
                 # large_list[ (i+1)*batch_size : ],
             )
