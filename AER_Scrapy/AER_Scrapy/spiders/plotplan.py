@@ -3,7 +3,7 @@ from scrapy import FormRequest
 from scrapy.http import Request
 from urllib.parse import urljoin
 import os
-from utils import cprint
+from utils import cprint, splitLandUnit
 
 from scrapy.utils.reactor import install_reactor
 # Prevents wrong selector from being used
@@ -34,12 +34,7 @@ class PlotPlanSpider(scrapy.Spider):
         )
 
     def step1(self, response):
-        # e.g. 09-10-049-07W4 to ['09','10','049','07','4']
-        landunit_arr = self.landunit.split('-')
-        temp = landunit_arr[3].split('W')
-        landunit_arr[3]=temp[0]
-        landunit_arr.append(temp[1])
-        temp=None
+        landunit_arr = splitLandUnit(self.land)
 
         cprint(f'Querying landunit {self.landunit}')
         # from_response handles aspx double underscore hidden fields
