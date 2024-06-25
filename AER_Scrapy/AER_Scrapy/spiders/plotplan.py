@@ -3,309 +3,162 @@ from scrapy import FormRequest
 from scrapy.http import Request
 from urllib.parse import urljoin
 import os
-import pandas as pd
+from utils import cprint
 
 from scrapy.utils.reactor import install_reactor
 # Prevents wrong selector from being used
 install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
 
-def csv_to_dict(file_path):
-    # Read the CSV file into a Pandas DataFrame
-    df = pd.read_csv(file_path)
-
-    # Group by 'LandUnit' and aggregate 'PolyID' into lists
-    grouped_data = df.groupby('LandUnit')['PolyID'].apply(list).reset_index()
-
-    # Convert grouped data into a dictionary
-    return dict(zip(grouped_data['LandUnit'], grouped_data['PolyID']))
-
-def createRowsMetaData(htmlRows): # util function
-    rowsMeta=[]
-    for row in htmlRows:
-        columns = []
-        columns.append( row.xpath('td[1]//input[@value="View"]/@name').get() )
-        columns.extend( row.xpath('td//text()').getall() )
-        rowsMeta.append({
-            'View_name':columns[0],
-            'App#':columns[1],
-            'Alt#':columns[2],
-            'Status':columns[3],
-            'Primary Applicant':columns[4],
-            'Registered':columns[5],
-            'Category':columns[6],
-            'Type':columns[7],
-            'Location':columns[8],
-        })
-    
-    return rowsMeta
-
-def dprint(*texts):
-    print('*')
-    print('**')
-    print('***')
-
-    string = ''
-    for e in texts : string += str(e) + ' '
-    print('****',string)
-
-    print('***')
-    print('**')
-    print('*')
-
-# Paths are relative to where Scrapy crawl is used
+# Paths are relative to the directory from which you issue the command
 class PlotPlanSpider(scrapy.Spider):
     name = "plotplan"
     url = "https://dds.aer.ca/iar_query/FindApplications.aspx"
-    userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-    LandUnit_PolyID_Dict = csv_to_dict('AB_2023_Polygon_with_Source_LandUnit.csv')
-    number_of_scrapes_allowed= -1 # set to -1 to disable limit
-    use_preset=False
     
-    def __init__(self, landunits=None, poly_ld_dict=None, *args, **kwargs):
+    def __init__(self, directory, landunit, landunit_polyid, polyid_landunit=None, *args, **kwargs):
         super(PlotPlanSpider, self).__init__(*args, **kwargs)
-        self.landunits = landunits
-        self.poly_ld_dict = poly_ld_dict
+        self.directory=directory # str
+        self.landunit = landunit # str
+        self.landunit_polyid = landunit_polyid # dict {'key':[v1,...,vn]}
+        self.polyid_landunit = polyid_landunit # dict {'key':[v1,...,vn]}
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+            # Call Utils User-Agent rotator instead of hard code
+        }
 
     def start_requests(self):
-        dprint('Spider', self.name, 'making a Request to', self.url)
+        cprint(f'Spider {self.name} requesting {self.url}')
+        yield scrapy.Request(
+            url=self.url, 
+            headers=self.headers, 
+            callback=self.step1,
+        )
 
-        headers = {
-            'User-Agent': self.userAgent
-        }
-
-        if (self.use_preset):
-            yield scrapy.Request(
-                url=self.url, 
-                headers=headers, 
-                callback=self.step1Preset,
-            )
-        else:
-            yield scrapy.Request(
-                url=self.url, 
-                headers=headers, 
-                callback=self.step1,
-            )
-
-    # Submitting queries with LandUnits from LandUnit_PolyID_Dict
     def step1(self, response):
-        dprint('Starting step1')
-
-        for key in self.landunits:
-
-            landUnit = key.split('-')
-            temp = landUnit[3].split('W')
-            landUnit[3]=temp[0]
-            landUnit.append(temp[1])
-            temp=None
-            
-            formData = {
-                'LSD': landUnit[0],
-                'Section': landUnit[1],
-                'Township': landUnit[2],
-                'Range': landUnit[3],
-                'Meridian': landUnit[4],
-                'btnSearch': 'Search',
-                '_EubIapPageUseProgressMonitor': 'true',
-            }
-            
-            # print('Form Data Entered:', formData)
-
-            headers = {
-                'User-Agent': self.userAgent,
-            }
-
-            # from_response handles aspx double underscore hidden fields
-            yield FormRequest.from_response(
-                response=response, 
-                formdata=formData, 
-                headers=headers, 
-                callback=self.step2,
-                meta={'LandUnit':key}
-            )
-
-    # Submitting query from preset LandUnit
-    # Used to targetting specific LandUnits or testing
-    def step1Preset(self, response):
-        dprint('Starting step1Preset')
-
-        key = '13-24-050-09W4'
-        
-        landUnit = key.split('-')
-        temp = landUnit[3].split('W')
-        landUnit[3]=temp[0]
-        landUnit.append(temp[1])
+        # e.g. 09-10-049-07W4 to ['09','10','049','07','4']
+        landunit_arr = self.landunit.split('-')
+        temp = landunit_arr[3].split('W')
+        landunit_arr[3]=temp[0]
+        landunit_arr.append(temp[1])
         temp=None
 
-        formData = {
-                'LSD': landUnit[0],
-                'Section': landUnit[1],
-                'Township': landUnit[2],
-                'Range': landUnit[3],
-                'Meridian': landUnit[4],
-                'btnSearch': 'Search',
-                '_EubIapPageUseProgressMonitor': 'true',
-            }
-        
-        print('Form Data Entered:', formData)
-
-        headers = {
-            'User-Agent': self.userAgent,
-        }
-
+        cprint(f'Querying landunit {self.landunit}')
         # from_response handles aspx double underscore hidden fields
         yield FormRequest.from_response(
             response=response, 
-            formdata=formData, 
-            headers=headers, 
+            headers=self.headers, 
             callback=self.step2,
-            meta={'LandUnit':key}
+            formdata={
+                'LSD': landunit_arr[0],
+                'Section': landunit_arr[1],
+                'Township': landunit_arr[2],
+                'Range': landunit_arr[3],
+                'Meridian': landunit_arr[4],
+                'btnSearch': 'Search',
+                '_EubIapPageUseProgressMonitor': 'true',
+            },
+            meta={
+                'landunit':self.landunit,
+            }
         )
-    
-    # Reloads Query results to display 100 items
+
     def step2(self, response):
-        dprint('Starting step2', '|',
-               'LandUnit:', response.meta['LandUnit'],'|',
-               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
-
-        formData = {
-            'PageItems': '100',
-            '_EubIapPageUseProgressMonitor': 'true',
-        }
-
-        headers = {
-            'User-Agent': self.userAgent,
-        }
-
-        # handles aspx double underscore hidden fields
         yield FormRequest.from_response(
             response=response, 
-            formdata=formData, 
-            headers=headers, 
+            headers=self.headers, 
             callback=self.step3,
+            formdata={
+                'PageItems': '100',
+                '_EubIapPageUseProgressMonitor': 'true',
+            }, 
             meta=response.meta # passing meta forward
         )
 
-    # Gets row data of targetted rows then views them
     def step3(self, response):
-        dprint('Starting step3', '|',
-               'LandUnit:', response.meta['LandUnit'],'|', 
-               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
-
         # Select Rows where 7th column contains substring "Facility"
-        rows = response.xpath('//table//tr[contains(td[7], "Facility")]')
         # Further Select Rows where 1st column contains an input tag where input.value="View"
-        rows = rows.xpath('td[1][input[@value="View"]]/..')
+        html_rows = response.xpath('//table//tr[contains(td[7], "Facility")]')
+        html_rows = html_rows.xpath('td[1][input[@value="View"]]/..')
 
-        # Saving meta data of rows
-        # Row[ View | App# | Alt# | Status | Primary Applicant | Registered | Category | Type | Location ]
-        rowsMeta = createRowsMetaData(rows)
-        
-        headers = {
-            'User-Agent': self.userAgent,
-        }
+        # Getting meta data of html_rows
+        for html_row in html_rows:
+            html_row_meta = [html_row.xpath('td[1]//input[@value="View"]/@name').get()]
+            html_row_meta.extend( html_row.xpath('td//text()').getall() )
 
-        for rowMeta in rowsMeta:
-            formData = {
-                'PageItems':'100',
-                rowMeta['View_name']:'View',
-                '_EubIapPageUseProgressMonitor':'true',
+            html_row_meta_dict = {
+                'View_name':html_row_meta[0],
+                'App#':html_row_meta[1],
+                'Alt#':html_row_meta[2],
+                'Status':html_row_meta[3],
+                'Primary Applicant':html_row_meta[4],
+                'Registered':html_row_meta[5],
+                'Category':html_row_meta[6],
+                'Type':html_row_meta[7],
+                'Location':html_row_meta[8],
             }
 
-            response.meta['App#']=rowMeta['App#']
+            response.meta['App#']=html_row_meta_dict['App#']
+            cprint(f'Visiting Application {html_row_meta_dict['App#']} of landunit {response.meta['landunit']}')
             yield FormRequest.from_response(
                 response=response,
-                formdata=formData,
-                headers=headers,
+                headers=self.headers,
                 callback=self.step4,
+                formdata={
+                    'PageItems':'100',
+                    html_row_meta_dict['View_name']:'View',
+                    '_EubIapPageUseProgressMonitor':'true',
+                },
                 meta=response.meta,
             )
 
-    # Visit the View Attachments page
     def step4(self, response):
-        dprint('Starting step4', '|',
-               'Application Number', response.meta['App#'], '|',
-               'LandUnit:', response.meta['LandUnit'],'|', 
-               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
-
-        url = 'https://dds.aer.ca/iar_query/'
-        url += response.xpath('//a[text()="View Attachments"]/@href').get()
-
-        headers = {
-            'User-Agent': self.userAgent,
-        }
-
+        url = f'https://dds.aer.ca/iar_query/{response.xpath('//a[text()="View Attachments"]/@href').get()}'
         yield scrapy.Request(
             url=url,
-            headers=headers,
+            headers=self.headers,
             callback=self.step5,
-            meta=response.meta, # passing the meta data
+            meta=response.meta,
         )
 
-    # Initiates a download requests for plotplan attachments
     def step5(self, response):
-        dprint('Starting step5', '|',
-               'Application Number', response.meta['App#'], '|',
-               'LandUnit:', response.meta['LandUnit'],'|', 
-               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
-
         # Extract all rows where the 2nd column contains an anchor tag containing "Plot Plan"
-        rows = response.xpath('//table//tr[td[2]//a[contains(text(), "Plot Plan")]]')
-        if len(rows) == 0: dprint('No plot plan found in View Attachments')
-
-        for row in rows:
-            # Get the relative URL from the 2nd column
-            relative_url = row.xpath('td[2]//a/@href').get()
+        html_rows = response.xpath('//table//tr[td[2]//a[contains(text(), "Plot Plan")]]')
+        cprint(f'({len(html_rows)}) plotplan link found in View Attachments of landunit {response.meta['landunit']}')
             
-            # Get the date from the 4th column
-            date = row.xpath('td[4]/text()').get()
-
+        for html_row in html_rows:
+            relative_url = html_row.xpath('td[2]//a/@href').get()
             file_url = urljoin(response.url, relative_url)
 
-            headers = {
-                'User-Agent': self.userAgent,
-            }
+            response.meta['date'] = html_row.xpath('td[4]/text()').get()
+            response.meta['PolyID']= self.landunit_polyid[response.meta['landunit']][0]
 
-            response.meta['date']=date
-            response.meta['PolyID']= self.LandUnit_PolyID_Dict[response.meta['LandUnit']][0]
-            print('final response meta', response.meta)
+            cprint(f'Requesting plotplan {file_url.split('?DOCNUM=')[-1]} of landunit {response.meta['landunit']}')
             yield Request(
                 url=file_url,
-                headers= headers,
+                headers=self.headers,
                 callback=self.step6,
                 meta=response.meta,
             )
 
     # Downloads plotplans into a directory
     def step6(self, response):
-        dprint('Starting step6', '|',
-               'Application Number', response.meta['App#'], '|',
-               'LandUnit:', response.meta['LandUnit'],'|', 
-               'Polygon:', self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0])
-        
-        # For tracking
-        poly_name = self.LandUnit_PolyID_Dict[ response.meta['LandUnit'] ][0]
-        land_unit_name = response.meta['LandUnit']
-        self.poly_ld_dict[poly_name].append(land_unit_name)
-
         # PolyID + Date in View Attachments + Doc Number
         filename = f"{response.meta['PolyID']}___{response.meta['date']}_{response.url.split('?DOCNUM=')[-1]}.pdf"
         
         # Create the directory if it does not exist
-        directory = 'scraped-data'
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
         
         # Handle filename conflicts
-        file_path = os.path.join(directory, filename)
+        file_path = os.path.join(self.directory, filename)
         counter = 1
         while os.path.exists(file_path):
-            file_path = os.path.join(directory, f"{filename[:-4]}_({counter}).pdf")
+            file_path = os.path.join(self.directory, f"{filename[:-4]}_({counter}).pdf")
             counter += 1
         
         # Save the file
         with open(file_path, 'wb') as f:
             f.write(response.body)
         
-        dprint(f"File saved as {file_path}")
+        cprint(f"File saved as {file_path}")
 
     
