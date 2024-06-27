@@ -96,7 +96,7 @@ FEED_EXPORT_ENCODING = "utf-8"
 # File name to use for logging output. 
 # If None, standard error will be used.
 # LOG_FILE = None
-LOG_FILE = 'log_output.txt'
+# LOG_FILE = 'log_output.txt'
 
 # If False, the log file specified with LOG_FILE will be overwritten 
 # (discarding the output from previous runs, if any).

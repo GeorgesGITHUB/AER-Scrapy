@@ -1,4 +1,4 @@
-Release planning
+*** Release planning ***
 
 Prototype
 - Runs from shell w/ input
@@ -12,38 +12,33 @@ Scale
 - Reduce time delays
 - Form file naming: 
     - PolyID + date from View Attachments page + og name
-- List of Polygons - Land Units association read and fed to the spider on init
+- Polygons-LandUnits map read and fed to the spider on init
 - Many user inputs are queued by reading from a file
 
 Batch
 - Sequentially batch processing with configurable batch size
 
-Batch 2
+Batch 2 (Aborted)
 - log all events
-    - step success/fail 
-    - download success/fail
-    - edge cases: duplicate downloads
-    - Landunits covered
-    - Landunits remaining
-    - Polygons covered
-    - Polygons remaining
+    - Landunits covered & remaining
+    - Polygons covered & remaining
 - Save all logs and print statements
-- Don't download if duplicate file
-- Custom process start and endpoint
-- Process only the landunits left
-- Process only the polygons left
+- Custom start and endpoint
 
 Refactor
-- Scan the repo to make...
-    - things configurable
-    - debug statement more useful
-    - Group repeated functionalities in functions and store in the class or in utils
-    - logic optimizations or fast libraries for actions
-- Use scrapy pipelines for transforms and other use cases
+- Across the repo...
+    - Improve configurability
+    - Group repeated functionalities in classes or utils
+    - Improve run time
+- Reduce logging
 
-Features
-- User Agent Rotator
+Tracking
+- Use SQLite Export CSV with stats on
+    - # of Total plotplan for a LandUnit/Polygon
+    - # of Downloaded plotplan for a LandUnit/Polygon
+    - # of Missing plotplan for a LandUnit/Polygon
+    - # of Missing plotplan for a LandUnit/Polygon
 
-QOL Features
-- Log the number of plotplans downloaded per polygon
-- plotplans will go in a subdirectory based on their associated polygon
+Execution Control
+- Pause and Resume crawling
+- Restore (from failure) crawling

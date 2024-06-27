@@ -1,44 +1,21 @@
-Checks if plot pdf is saved
-Compare dates of saved and website plot pdfs
-Task/time Graph overlaying w/ & w/o web scrape tool
-Full GUI experience
-Lots of configurable settings
-Modifiable directory location
-Shortcut using url navigating and API requests
-Have the other tab previewing the pdf
-Left side of the split window has the gui buttons and fields
+Super configurable
+User Agent Randomizer on Spider init
+Email to inputted address once done
+Single point (obj or file) which configures everything
+Each polygon is a directory with associated plotplans 
 LLM to identify elements in plot plan
-user agent getter which rotates on every call
-Batch controls: 
-- interrupt and resume with user input
-- Change course
-- Get what's left (for later batching)
 
-Stats
-- what's done
-- what's left
-- etc
+Pre plan batches and run them using ID
 
-Save execution logs
+Refactor
+    loop crawl() instead of having the loop in crawl()
 
-Notes from demoing
-- Searching for plot plans in polygons is better than LSD
-- if plot plan not found in Facility, search the other categories
-- consider multiple plot plans
--
+Duplicate PDF strategies
+    1. Names match -> Skip over it
+    2. Names match -> Download a copy
 
-File name format
-    PolyID + date from after clicking view Attachments + _original file name
-
-Mark down which polygons that did and didn't have a plotplan download
-
-
-Split the window in two and have a tab emulating a terminal
-Layout:
-[                                      |                               ]
-[                                      |                               ]
-[                                      |                               ]
-[ progress tracker (see joyui stepper) | cmd window showing executions ]
-[                                      |                               ]
-[                                      |                               ]
-[                                      |                               ]
+GUI Related
+    All the present functionalities
+    Modifiable directory location
+    Preview PDF View
+    Terminal View
