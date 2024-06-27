@@ -8,8 +8,8 @@ from scrapy.utils.reactor import install_reactor
 
 
 # Configuration Settings
-csv_path = 'test.csv'
-# csv_path = 'AB_2023_Polygon_with_Source_LandUnit.csv'
+# csv_path = 'test.csv'
+csv_path = 'AB_2023_Polygon_with_Source_LandUnit.csv'
 directory = 'scraped-data'
 
 def main():
@@ -44,8 +44,8 @@ def main():
                 landunit_polyid=landunit_polyid,
             )
             cprint(
-                f'Index of LandUnits visited ({0},{i})', '\n'
-                f'Index of LandUnits remaining ({i+1},{len(landunits)}('
+                f'LandUnits ({len(landunits)}), Index Range visited ({0},{i})', '| '
+                f'remaining ({i+1},{len(landunits)}(',
             )
 
         reactor.stop()

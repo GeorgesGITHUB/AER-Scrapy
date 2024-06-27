@@ -5,6 +5,11 @@ Single point (obj or file) which configures everything
 Each polygon is a directory with associated plotplans 
 LLM to identify elements in plot plan
 
+Pre plan batches and run them using ID
+
+Refactor
+    loop crawl() instead of having the loop in crawl()
+
 Duplicate PDF strategies
     1. Names match -> Skip over it
     2. Names match -> Download a copy

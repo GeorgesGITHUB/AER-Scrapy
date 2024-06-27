@@ -34,7 +34,7 @@ class PlotPlanSpider(scrapy.Spider):
         )
 
     def step1(self, response):
-        landunit_arr = splitLandUnit(self.land)
+        landunit_arr = splitLandUnit(self.landunit)
 
         cprint(f'Querying landunit {self.landunit}')
         # from_response handles aspx double underscore hidden fields
@@ -73,6 +73,7 @@ class PlotPlanSpider(scrapy.Spider):
         # Further Select Rows where 1st column contains an input tag where input.value="View"
         html_rows = response.xpath('//table//tr[contains(td[7], "Facility")]')
         html_rows = html_rows.xpath('td[1][input[@value="View"]]/..')
+        if (len(html_rows)==0): cprint('Facility Application not found')
 
         # Getting meta data of html_rows
         for html_row in html_rows:

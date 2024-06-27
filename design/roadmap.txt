@@ -31,8 +31,9 @@ Refactor
     - Group repeated functionalities in classes or utils
     - Improve run time
 - Reduce logging
-- Export CSV with stats on
-*** Might be useful: Scrapy Signals ***
+
+Tracking
+- Use SQLite Export CSV with stats on
     - # of Total plotplan for a LandUnit/Polygon
     - # of Downloaded plotplan for a LandUnit/Polygon
     - # of Missing plotplan for a LandUnit/Polygon
