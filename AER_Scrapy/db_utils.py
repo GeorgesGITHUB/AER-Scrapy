@@ -86,6 +86,20 @@ class SQLiteDBHelper:
     def export_to_txt(self):
         pass
 
+    def query_polygon(self, landunit_code):
+        """Query and return the polygon_id associated with a given landunit_code."""
+        query = """
+        SELECT polygon_id 
+        FROM PolygonLandUnit
+        WHERE landunit_code = ?
+        """
+        result = self.execute_query(query, (landunit_code,))
+        if result:
+            return result[0][0]
+        else:
+            cprint(f"No polygon found for landunit: {landunit_code}")
+            return None
+        
     def upsert_polygon(self, polygon_id):
         query = "INSERT OR REPLACE INTO Polygon (id) VALUES (?)"
         self.execute_query(query, (polygon_id,))
