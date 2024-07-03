@@ -1,7 +1,8 @@
 import sqlite3
 import pandas as pd
 import os
-from utils # import openpyxl # Use for db -> excel
+from utils import cprint
+# import openpyxl # Use for db -> excel
 
 class SQLiteDBHelper:
     def __init__(self, db_name, fresh_start=False, csv_path=None):
