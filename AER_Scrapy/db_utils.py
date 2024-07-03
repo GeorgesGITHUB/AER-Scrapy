@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 import os
-from utils import cprint
+from utils # import openpyxl # Use for db -> excel
 
 class SQLiteDBHelper:
     def __init__(self, db_name, fresh_start=False, csv_path=None):
@@ -30,7 +30,8 @@ class SQLiteDBHelper:
         """
         create_plotplan_table = """
         CREATE TABLE IF NOT EXISTS PlotPlan (
-            name TEXT PRIMARY KEY
+            name TEXT PRIMARY KEY,
+            downloaded INTEGER DEFAULT 0
         );
         """
         create_polygon_landunit_table = """
@@ -66,7 +67,7 @@ class SQLiteDBHelper:
         """Import PolyID and LandUnit values from a CSV file into the tables."""
         try:
             df = pd.read_csv(csv_path)
-            for index, row in df.iterrows():
+            for _, row in df.iterrows():
                 polygon_id = row['PolyID']
                 landunit_code = row['LandUnit']
                 self.upsert_polygon(polygon_id)
@@ -74,7 +75,16 @@ class SQLiteDBHelper:
                 self.upsert_polygon_landunit(polygon_id, landunit_code)
         except Exception as e:
             cprint(f"Error importing CSV to database: {e}")
-            
+    
+    def export_to_xlsx(self):
+        pass
+    
+    def export_to_csv(self):
+        pass
+    
+    def export_to_txt(self):
+        pass
+
     def upsert_polygon(self, polygon_id):
         query = "INSERT OR REPLACE INTO Polygon (id) VALUES (?)"
         self.execute_query(query, (polygon_id,))
@@ -83,9 +93,13 @@ class SQLiteDBHelper:
         query = "INSERT OR REPLACE INTO LandUnit (code) VALUES (?)"
         self.execute_query(query, (landunit_code,))
 
-    def upsert_plotplan(self, plotplan_name):
-        query = "INSERT OR REPLACE INTO PlotPlan (name) VALUES (?)"
-        self.execute_query(query, (plotplan_name,))
+    def upsert_plotplan(self, plotplan_name, downloaded=False):
+        if downloaded:
+            query = "INSERT OR REPLACE INTO PlotPlan (name, downloaded) VALUES (?, ?)"
+            self.execute_query(query, (plotplan_name,1))
+        else:
+            query = "INSERT OR REPLACE INTO PlotPlan (name) VALUES (?)"
+            self.execute_query(query, (plotplan_name,))
 
     def upsert_polygon_landunit(self, polygon_id, landunit_code):
         query = "INSERT OR REPLACE INTO PolygonLandUnit (polygon_id, landunit_code) VALUES (?, ?)"
@@ -135,3 +149,13 @@ class SQLiteDBHelper:
         """Close the database connection."""
         if self.connection:
             self.connection.close()
+
+    def debug(self):
+        """Print out all tables and their contents."""
+        tables = self.execute_query("SELECT name FROM sqlite_master WHERE type='table';")
+        for table in tables:
+            table_name = table[0]
+            print(f"\nTable: {table_name}")
+            rows = self.execute_query(f"SELECT * FROM {table_name}")
+            for row in rows:
+                print(row)
