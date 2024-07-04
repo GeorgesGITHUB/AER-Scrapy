@@ -4,6 +4,7 @@ from scrapy.http import Request
 from urllib.parse import urljoin
 import os
 from utils import cprint, splitLandUnit
+from db_utils import SQLiteDBHelper as DatabaseController
 
 from scrapy.utils.reactor import install_reactor
 # Prevents wrong selector from being used
@@ -14,12 +15,12 @@ class PlotPlanSpider(scrapy.Spider):
     name = "plotplan"
     url = "https://dds.aer.ca/iar_query/FindApplications.aspx"
     
-    def __init__(self, directory, landunit, landunit_polyid, polyid_landunit=None, *args, **kwargs):
+    def __init__(self, directory, landunit, db_name, landunit_polyid, *args, **kwargs):
         super(PlotPlanSpider, self).__init__(*args, **kwargs)
-        self.directory=directory # str
+        self.directory = directory # str
         self.landunit = landunit # str
+        self.db_name = db_name # str
         self.landunit_polyid = landunit_polyid # dict {'key':[v1,...,vn]}
-        self.polyid_landunit = polyid_landunit # dict {'key':[v1,...,vn]}
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
             # Call Utils User-Agent rotator instead of hard code
@@ -121,13 +122,27 @@ class PlotPlanSpider(scrapy.Spider):
         cprint(f'({len(html_rows)}) plotplan link found in View Attachments of landunit {response.meta['landunit']}')
             
         for html_row in html_rows:
+            tracking_db = DatabaseController(self.db_name)
+
             relative_url = html_row.xpath('td[2]//a/@href').get()
             file_url = urljoin(response.url, relative_url)
 
             response.meta['date'] = html_row.xpath('td[4]/text()').get()
-            response.meta['PolyID']= self.landunit_polyid[response.meta['landunit']][0]
 
-            cprint(f'Requesting plotplan {file_url.split('?DOCNUM=')[-1]} of landunit {response.meta['landunit']}')
+            PolyID = tracking_db.query_polygon(response.meta['landunit'])
+            if PolyID:
+                response.meta['PolyID'] = PolyID
+            else:
+                response.meta['PolyID'] = 'Failed_To_Get_PolyID'
+                
+
+            plotplan_name = file_url.split('?DOCNUM=')[-1]
+            cprint(f'Requesting plotplan {plotplan_name} of landunit {response.meta['landunit']}')
+
+            tracking_db.upsert_plotplan(plotplan_name)
+            tracking_db.upsert_landunit_plotplan(response.meta['landunit'], plotplan_name)
+            tracking_db.close_connection()
+
             yield Request(
                 url=file_url,
                 headers=self.headers,
@@ -137,8 +152,10 @@ class PlotPlanSpider(scrapy.Spider):
 
     # Downloads plotplans into a directory
     def step6(self, response):
+        plotplan_name = response.url.split('?DOCNUM=')[-1]
+
         # PolyID + Date in View Attachments + Doc Number
-        filename = f"{response.meta['PolyID']}___{response.meta['date']}_{response.url.split('?DOCNUM=')[-1]}.pdf"
+        filename = f"{response.meta['PolyID']}___{response.meta['date']}_{plotplan_name}.pdf"
         
         # Create the directory if it does not exist
         if not os.path.exists(self.directory):
@@ -156,5 +173,9 @@ class PlotPlanSpider(scrapy.Spider):
             f.write(response.body)
         
         cprint(f"File saved as {file_path}")
+
+        tracking_db = DatabaseController(self.db_name)
+        tracking_db.upsert_plotplan(plotplan_name, True)
+        tracking_db.close_connection()
 
     
