@@ -64,6 +64,16 @@ def main():
 #     for i in range(0, len(lst), chunk_size):
 #         yield lst[i:i + chunk_size]
 
+def testing():
+    db = DatabaseController(db_name)
+    res = db.query_polygon('09-10-049-07W4')
+
+    # db.upsert_plotplan('P1')
+    # db.upsert_plotplan('P2')
+    # db.upsert_plotplan('P3',True)
+
+    db.export_to_xlsx('test.xlsx')
+
 if __name__ == '__main__':
     main()
     # testing()
