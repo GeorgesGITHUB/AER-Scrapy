@@ -2,13 +2,16 @@ import sqlite3
 import pandas as pd
 import os
 from utils import cprint
-# import openpyxl # Use for db -> excel
+import openpyxl
 
 class SQLiteDBHelper:
     def __init__(self, db_name, fresh_start=False, csv_path=None):
         self.db_name = db_name
         self.connection = self.create_connection()
         
+        # To Do
+        # if no tables found, print a msg then fresh_start=True
+
         if fresh_start:
             cprint('Deleting Tables')
             self.delete_tables() # Protected from None Deletion
@@ -77,8 +80,27 @@ class SQLiteDBHelper:
         except Exception as e:
             cprint(f"Error importing CSV to database: {e}")
     
-    def export_to_xlsx(self):
-        pass
+    def export_to_xlsx(self, excel_path):
+        # List of table names
+        tables = ['Polygon', 'LandUnit', 'PlotPlan', 'PolygonLandUnit', 'LandUnitPlotPlan']
+        
+        # Create a Pandas Excel writer using openpyxl
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            for table in tables:
+                # Read each table into a DataFrame
+                df = pd.read_sql_query(f"SELECT * FROM {table}", self.connection)
+                # Write the DataFrame to a sheet named after the table
+                df.to_excel(writer, sheet_name=table, index=False)
+
+            # Perform the join query
+            join_query = """
+            SELECT pl.polygon_id, pl.landunit_code, lu.plotplan_name
+            FROM PolygonLandUnit pl
+            JOIN LandUnitPlotPlan lu ON pl.landunit_code = lu.landunit_code;
+            """
+            join_df = pd.read_sql_query(join_query, self.connection)
+            # Write the joined DataFrame to a new sheet
+            join_df.to_excel(writer, sheet_name='JoinedData', index=False)
     
     def export_to_csv(self):
         pass
