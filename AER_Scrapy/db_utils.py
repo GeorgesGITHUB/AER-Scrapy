@@ -3,6 +3,8 @@ import pandas as pd
 import os
 from utils import cprint
 import openpyxl
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 class SQLiteDBHelper:
     def __init__(self, db_name, fresh_start=False, csv_path=None):
@@ -86,11 +88,36 @@ class SQLiteDBHelper:
         
         # Create a Pandas Excel writer using openpyxl
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            for table in tables:
-                # Read each table into a DataFrame
-                df = pd.read_sql_query(f"SELECT * FROM {table}", self.connection)
-                # Write the DataFrame to a sheet named after the table
-                df.to_excel(writer, sheet_name=table, index=False)
+            
+             # Get PlotPlan statistics
+            plotplan_df = pd.read_sql_query("SELECT * FROM PlotPlan", self.connection)
+            plotplans_detected = len(plotplan_df)
+            plotplans_missing = len(plotplan_df[plotplan_df['downloaded'] == 0])
+            plotplans_downloaded = len(plotplan_df[plotplan_df['downloaded'] == 1])
+            plotplans_missing_percentage = (plotplans_missing / plotplans_detected) * 100
+            plotplans_downloaded_percentage = (plotplans_downloaded / plotplans_detected) * 100
+
+            # Create a DataFrame for the statistics
+            stats_data = {
+                'Metric': [
+                    'PlotPlans Detected', 
+                    'PlotPlans Downloaded', 
+                    'PlotPlans Missing', 
+                    'Percentage of PlotPlans Downloaded', 
+                    'Percentage of PlotPlans Missing'
+                ],
+                'Value': [
+                    plotplans_detected,
+                    plotplans_downloaded,
+                    plotplans_missing, 
+                    f"{plotplans_missing_percentage:.2f}%", 
+                    f"{plotplans_downloaded_percentage:.2f}%"
+                ]
+            }
+            stats_df = pd.DataFrame(stats_data)
+            
+            # Write the statistics DataFrame to a new sheet
+            stats_df.to_excel(writer, sheet_name='PlotPlanStatistics', index=False)
 
             # Perform the join query
             join_query = """
@@ -101,6 +128,31 @@ class SQLiteDBHelper:
             join_df = pd.read_sql_query(join_query, self.connection)
             # Write the joined DataFrame to a new sheet
             join_df.to_excel(writer, sheet_name='JoinedData', index=False)
+            
+            for table in tables:
+                # Read each table into a DataFrame
+                df = pd.read_sql_query(f"SELECT * FROM {table}", self.connection)
+                # Write the DataFrame to a sheet named after the table
+                df.to_excel(writer, sheet_name=table, index=False)
+
+        # Load the workbook to adjust column widths
+        workbook = load_workbook(excel_path)
+        for sheet_name in workbook.sheetnames:
+            worksheet = workbook[sheet_name]
+            for column in worksheet.columns:
+                max_length = 0
+                column = list(column)
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(cell.value)
+                    except:
+                        pass
+                adjusted_width = (max_length + 2)
+                worksheet.column_dimensions[get_column_letter(column[0].column)].width = adjusted_width
+
+        # Save the adjusted workbook
+        workbook.save(excel_path)
     
     def export_to_csv(self):
         pass
