@@ -18,7 +18,7 @@ Scale
 Batch
 - Sequentially batch processing with configurable batch size
 
-Batch 2 (Aborted)
+Batch 2 (Aborted, needs refactoring)
 - log all events
     - Landunits covered & remaining
     - Polygons covered & remaining
@@ -36,9 +36,18 @@ Tracking
 - Use SQLite Export CSV with stats on
     - # of Total plotplan for a LandUnit/Polygon
     - # of Downloaded plotplan for a LandUnit/Polygon
-    - # of Missing plotplan for a LandUnit/Polygon
-    - # of Missing plotplan for a LandUnit/Polygon
+    - # of Not-Downloaded plotplan for a LandUnit/Polygon
+- Steps
+    - Initialize a table for Polygon LandUnit relation used for lookup
+    - In every crawl, add associate plotplan to Landunit
+    - Join tables to make a giant stats page and export to excel or csv
 
-Execution Control
-- Pause and Resume crawling
-- Restore (from failure) crawling
+Testing
+- Test suite running Unit and integration tests, where applicable
+
+Batch 3
+- Auto allocate landunits/Polygon to batches
+- Custom allocate landunits/Polygon to batches
+- Track batches completed and remaining
+- Pause and Resume batch
+- Restore (from failure) batch execution

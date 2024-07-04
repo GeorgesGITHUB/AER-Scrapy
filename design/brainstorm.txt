@@ -5,10 +5,19 @@ Single point (obj or file) which configures everything
 Each polygon is a directory with associated plotplans 
 LLM to identify elements in plot plan
 
+Allow concurrent async operations
+    Use a thread-safe queue to batch database operations in a separate thread.
+
 Pre plan batches and run them using ID
 
 Refactor
     loop crawl() instead of having the loop in crawl()
+    Functionalities into Scrapy pipeline processes 
+      for...
+      SoC, Code Reusability, Maintainability, Scalability, Async
+      using...
+      Different item child types and class checks s.t. process is done on right item
+
 
 Duplicate PDF strategies
     1. Names match -> Skip over it
