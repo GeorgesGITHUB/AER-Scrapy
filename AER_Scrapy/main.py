@@ -12,6 +12,7 @@ from scrapy.utils.reactor import install_reactor
 csv_path = 'AB_2023_Polygon_with_Source_LandUnit.csv'
 directory = 'scraped-data'
 db_name = 'progress_tracking.db'
+excel_export_path = 'web_crawl_report.xlsx'
 # csv_path = 'test.csv'
 
 def main():
@@ -31,12 +32,11 @@ def main():
         # by some polygons
 
     landunits = col_to_list('LandUnit', csv_path)
-    landunit_polyid = cols_to_dict('LandUnit','PolyID', csv_path)
 
     # Divide the list into smaller batches
     # batches = list(chunk_list(landunits, batch_size))
     
-    tracking_db = DatabaseController(db_name, True, 'test.csv')
+    tracking_db = DatabaseController(db_name, True, csv_path)
     tracking_db.close_connection()
 
     @defer.inlineCallbacks
@@ -47,7 +47,6 @@ def main():
                 directory=directory,
                 db_name = db_name,
                 landunit=landunit,
-                landunit_polyid=landunit_polyid,
             )
             cprint(
                 f'LandUnits ({len(landunits)}), Index Range visited ({0},{i})', '| '
@@ -58,6 +57,11 @@ def main():
 
     crawl()
     reactor.run()
+
+    tracking_db = DatabaseController(db_name)
+    cprint(f'Exporting Database {db_name[:-3]} to Excel as')
+    tracking_db.export_to_xlsx(excel_export_path)
+
     cprint('Program complete')
 
 # def chunk_list(lst, chunk_size):

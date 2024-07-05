@@ -15,12 +15,11 @@ class PlotPlanSpider(scrapy.Spider):
     name = "plotplan"
     url = "https://dds.aer.ca/iar_query/FindApplications.aspx"
     
-    def __init__(self, directory, landunit, db_name, landunit_polyid, *args, **kwargs):
+    def __init__(self, directory, landunit, db_name, *args, **kwargs):
         super(PlotPlanSpider, self).__init__(*args, **kwargs)
         self.directory = directory # str
         self.landunit = landunit # str
         self.db_name = db_name # str
-        self.landunit_polyid = landunit_polyid # dict {'key':[v1,...,vn]}
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
             # Call Utils User-Agent rotator instead of hard code
