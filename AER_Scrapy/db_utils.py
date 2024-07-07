@@ -110,8 +110,8 @@ class SQLiteDBHelper:
                     plotplans_detected,
                     plotplans_downloaded,
                     plotplans_missing, 
+                    f"{plotplans_downloaded_percentage:.2f}%",
                     f"{plotplans_missing_percentage:.2f}%", 
-                    f"{plotplans_downloaded_percentage:.2f}%"
                 ]
             }
             stats_df = pd.DataFrame(stats_data)
